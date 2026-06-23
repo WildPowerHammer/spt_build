@@ -248,7 +248,7 @@ jobs:
             -p:SptVersion=${{ needs.prepare.outputs.spt_version }} \
             -p:SptBuildTime=$( date +%Y%m%d ) \
             -p:SptCommit=${{ steps.commit-hash.outputs.server_commit }} \
-            -p:IsPublish=true
+            -p:IsPublish=true -p:LangVersion=preview
           done
         working-directory: SPT/Build/server-csharp
 
@@ -276,36 +276,6 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-      - name: Create NuGet Packages
-        shell: bash
-        run: |
-          mkdir -p ./packages/
-          dotnet pack -o ./packages/ -c ${{ needs.prepare.outputs.build_config }} /p:Version=${{ needs.prepare.outputs.nuget_version }}
-          echo "NuGet packages created with version ${{ needs.prepare.outputs.nuget_version }}"
-        working-directory: SPT/Build/server-csharp
-
-      - name: Publish NuGet Packages
-        continue-on-error: true
-        shell: bash
-        run: |
-          PACKAGES=("SPTarkov.Common" "SPTarkov.DI" "SPTarkov.Reflection" "SPTarkov.Server.Assets" "SPTarkov.Server.Web" "SPTarkov.Server.Core")
-          VERSION="${{ needs.prepare.outputs.nuget_version }}"
-
-          for PACKAGE in "${PACKAGES[@]}"; do
-            PACKAGE_FILE="./packages/${PACKAGE}.${VERSION}.nupkg"
-            if [ -f "$PACKAGE_FILE" ]; then
-              echo "Publishing $PACKAGE_FILE..."
-              if dotnet nuget push "$PACKAGE_FILE" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json; then
-                echo "Successfully published $PACKAGE"
-              else
-                echo "Failed to publish $PACKAGE"
-              fi
-            else
-              echo "Warning: Package file $PACKAGE_FILE not found, skipping."
-            fi
-          done
-          echo "NuGet package publishing completed."
-        working-directory: SPT/Build/server-csharp
 
   build-modules:
     needs: prepare
